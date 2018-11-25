@@ -57,24 +57,28 @@ impl<I: Iterator<Item = u8>> Iterator for Lexer<Peekable<I>> {
             match self.source.next()? {
                 b'a'...b'z' | b'A'...b'Z' | b'_' => {
                     loop {
-                        match self.source.peek()? {  // TODO: Cannot use ?
-                            b'a'...b'z' | b'A'...b'Z' | b'_' => {
-                                self.source.next();
-                                break;
-                            },
-                            _ => continue,
-                        };
+                        if let Some(byte) = self.source.peek().cloned() {
+                            match byte {
+                                b'a'...b'z' | b'A'...b'Z' | b'_' => {
+                                    self.source.next();
+                                    continue;
+                                },
+                                _ => break,
+                            }
+                        }
                     }
                     break Some(Token::Identifier)
                 },
                 b'0'...b'9' => {
                     loop {
-                        match self.source.peek()? {  // TODO: Cannot use ?
-                            b'0'...b'9' => {
-                                self.source.next();
-                                break;
-                            },
-                            _ => continue,
+                        if let Some(byte) = self.source.peek().cloned() {
+                            match byte {
+                                b'0'...b'9' => {
+                                    self.source.next();
+                                    continue;
+                                },
+                                _ => break,
+                            }
                         }
                     }
                     break Some(Token::Number)
