@@ -1,3 +1,5 @@
+use std::str::Bytes;
+
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Token {
     /// Should match a combination of letters a-z and A-Z.
@@ -28,22 +30,44 @@ pub enum Token {
 }
 
 /// This struct needs some fields!
-pub struct Lexer;
+#[derive(Debug)]
+pub struct Lexer<It: Iterator<Item=u8>> {
+    source: It,
+}
 
-impl Lexer {
+impl<'a> Lexer<Bytes<'a>> {
     /// It also needs some code
-    pub fn new(source: &str) -> Self {
-        Lexer
+    pub fn new(source: &'a str) -> Self {
+        Lexer {
+            source: source.bytes(),
+        }
     }
 }
 
 /// We will also use the `Iterator` trait from the
 /// standard library for our Lexer.
-impl Iterator for Lexer {
+impl<It: Iterator<Item = u8>> Iterator for Lexer<It> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Token> {
-        None
+        loop {
+            match self.source.next()? {
+                b'a'...b'z' | b'A'...b'Z' | b'_' => {
+                    break Some(Token::Identifier)
+                },
+                b'0'...b'9' => {
+                    break Some(Token::Number)
+                },
+                b'+' => break Some(Token::Add),
+                b'-' => break Some(Token::Subtract),
+                b'*' => break Some(Token::Multiply),
+                b'/' => break Some(Token::Divide),
+                b'=' => break Some(Token::Assign),
+                b';' => break Some(Token::Semicolon),
+                b' ' | b'\t' | b'\n' => continue,
+                _ => break None,
+            }
+        }
     }
 }
 
@@ -70,6 +94,7 @@ fn test() {
     // Create an iterator of Tokens out of the slice here.
     let expect = expect.iter().cloned();
     let lexer = Lexer::new(source);
+    println!("{:?}", lexer);
 
     // We can use the `eq` method of the `Iterator` trait
     // to check that they are equal
