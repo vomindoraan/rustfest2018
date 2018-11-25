@@ -1,3 +1,4 @@
+use std::iter::Peekable;
 use std::str::Bytes;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -31,31 +32,51 @@ pub enum Token {
 
 /// This struct needs some fields!
 #[derive(Debug)]
-pub struct Lexer<It: Iterator<Item=u8>> {
-    source: It,
+pub struct Lexer<I: Iterator<Item = u8>> {
+    source: I,
 }
 
-impl<'a> Lexer<Bytes<'a>> {
+impl<'a> Lexer<Peekable<Bytes<'a>>> {
     /// It also needs some code
     pub fn new(source: &'a str) -> Self {
         Lexer {
-            source: source.bytes(),
+            source: source.bytes().peekable(),
         }
     }
 }
 
 /// We will also use the `Iterator` trait from the
 /// standard library for our Lexer.
-impl<It: Iterator<Item = u8>> Iterator for Lexer<It> {
+impl<I: Iterator<Item = u8>> Iterator for Lexer<Peekable<I>> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Token> {
-        loop {
+        // `return` enforces that the compiler will complain if we `break`
+        // without a value anywhere.
+        return loop {
             match self.source.next()? {
                 b'a'...b'z' | b'A'...b'Z' | b'_' => {
+                    loop {
+                        match self.source.peek()? {  // TODO: Cannot use ?
+                            b'a'...b'z' | b'A'...b'Z' | b'_' => {
+                                self.source.next();
+                                break;
+                            },
+                            _ => continue,
+                        };
+                    }
                     break Some(Token::Identifier)
                 },
                 b'0'...b'9' => {
+                    loop {
+                        match self.source.peek()? {  // TODO: Cannot use ?
+                            b'0'...b'9' => {
+                                self.source.next();
+                                break;
+                            },
+                            _ => continue,
+                        }
+                    }
                     break Some(Token::Number)
                 },
                 b'+' => break Some(Token::Add),
@@ -67,7 +88,7 @@ impl<It: Iterator<Item = u8>> Iterator for Lexer<It> {
                 b' ' | b'\t' | b'\n' => continue,
                 _ => break None,
             }
-        }
+        };
     }
 }
 
