@@ -55,8 +55,11 @@ impl<I: Iterator<Item = u8>> Iterator for Lexer<Peekable<I>> {
         // without a value anywhere.
         return loop {
             match self.source.next()? {
+                // Identifiers
                 b'a'...b'z' | b'A'...b'Z' | b'_' => {
                     loop {
+                        // `match self.source.peek()?` can't be used because it
+                        // could return from `next` early.
                         if let Some(byte) = self.source.peek().cloned() {
                             match byte {
                                 b'a'...b'z' | b'A'...b'Z' | b'_' => {
@@ -69,6 +72,8 @@ impl<I: Iterator<Item = u8>> Iterator for Lexer<Peekable<I>> {
                     }
                     break Some(Token::Identifier)
                 },
+
+                // Numbers
                 b'0'...b'9' => {
                     loop {
                         if let Some(byte) = self.source.peek().cloned() {
@@ -83,13 +88,18 @@ impl<I: Iterator<Item = u8>> Iterator for Lexer<Peekable<I>> {
                     }
                     break Some(Token::Number)
                 },
+
+                // Binary operations
                 b'+' => break Some(Token::Add),
                 b'-' => break Some(Token::Subtract),
                 b'*' => break Some(Token::Multiply),
                 b'/' => break Some(Token::Divide),
                 b'=' => break Some(Token::Assign),
+
+                // Delimiters
                 b';' => break Some(Token::Semicolon),
                 b' ' | b'\t' | b'\n' => continue,
+
                 _ => break None,
             }
         };
